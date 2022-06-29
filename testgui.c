@@ -6,21 +6,39 @@
 #include <stdbool.h>
 #include <ctype.h>
 
+void intro();
 void rook(int r, int c);
 void bishop(int r, int c);
-void pawn(int r, int c);
 void horse(int r, int c);
+void queen(int r, int c);
+void king(int r, int c);
+void pawn(int r, int c);
 int check_pos(int row, int column);
 int is_capital(char letter);
 int input(int moving);
-void display(int display_moves);
+void display(int temp);
 void initialize();
 void get_moves(char piece, int r, int c);
+void reset_moves();
+bool check_for_attack(char piece);
+void check();
 
-char current_player[] = "White";
+char current_player = 'W';
 char board[8][8] = {};
 int moves[8][8] = {};
-int check = 0;
+bool checked = false;
+
+void intro() {
+	FILE* ptr;
+    char str[50];
+    ptr = fopen("chess.txt", "r");
+    while (fgets(str, 50, ptr) != NULL) {
+        printf("%s", str);
+    }
+ 
+    fclose(ptr);
+
+}
 
 // Valid moves for the rook
 void rook(int r, int c) {
@@ -121,12 +139,10 @@ void horse(int r, int c) {
 		for(int j = 0; j<2; j++) {
 
 			checked = check_pos(r+(r_sign*2), c+(c_sign*1));
-			printf("(%d, %d); checked: %d\n", r+(r_sign*2), c+(c_sign*1), checked);
 			if(checked == 1 || checked == 2)
 				moves[r+(r_sign*2)][c+(c_sign*1)] = checked;
 			
 			checked = check_pos(r+(c_sign*1), c+(r_sign*2));
-			printf("(%d, %d); checked: %d\n", r+(c_sign*1), c+(r_sign*2), checked);
 			if(checked == 1 || checked == 2)
 				moves[r+(c_sign*1)][c+(r_sign*2)] = checked;
 			
@@ -177,12 +193,12 @@ void pawn(int r, int c) {
 
 	int sign = 1;
 
-	if(!strcmp(current_player, "Black"))
+	if(current_player == 'B')
 		sign *= -1;
 		
 	if(board[r-(1*sign)][c] == '\0')
 		moves[r-(1*sign)][c] = 1;
-	if(((r==6) && !strcmp(current_player, "White")) || ((r==1) && !strcmp(current_player, "Black")))
+	if(((r==6) && (current_player == 'W')) || ((r==1) && (current_player == 'B')))
 		if(board[r-(2*sign)][c] == '\0')
 			moves[r-(2*sign)][c] = 1;
 
@@ -191,29 +207,6 @@ void pawn(int r, int c) {
 	if(check_pos(r-(1*sign), c+(1*sign*-1)) == 2)
 		moves[r-(1*sign)][c+(1*sign*-1)] = 2;
 }
-
-// void check() {
-// 	int pos[2] = {};
-// 	for(int i = 0; i<8; i++) {
-// 		for(int j = 0; j<8; j++) {
-// 			if(!strcmp(current_player,"White") && (board[i][j] == 'K')) {
-// 				pos[0] = i;
-// 				pos[1] = j;
-// 			} else if(!strcmp(current_player,"Black") && (board[i][j] == 'k')) {
-// 				pos[0] = i;
-// 				pos[1] = j;
-// 			}
-// 		}
-// 	}
-
-// 	rook(pos[0], pos[1]);
-// 	for(int i = 0; i<8; i++) {
-// 		for(int j = 0; j<8; j++) {
-// 			if(moves[i][j] == 2)
-				
-// 		}
-// 	}
-// }
 
 //Perform checks to see if position is valid
 int check_pos(int row, int column) {
@@ -224,7 +217,7 @@ int check_pos(int row, int column) {
 	} else if (board[row][column] == '\0') {
 		// Empty
 		return 1;
-	} else if(!strcmp(current_player, "White") && !is_capital(board[row][column]) || !strcmp(current_player, "Black") && is_capital(board[row][column])) {
+	} else if((current_player == 'W') && !is_capital(board[row][column]) || (current_player == 'B') && is_capital(board[row][column])) {
 		// Opponent piece
 		return 2;
 	}
@@ -259,47 +252,144 @@ int input(int moving) {
 }
 
 //Output the board in formatted form
-void display(int display_moves) {
-	int count = 1;
+// void display(int temp) {
+// 	int count = 1;
 
-	for(int k = (int)'A'; k<=(int)'H';k++)
-		printf("-----");
-	printf("\n");
+// 	for(int k = (int)'A'; k<=(int)'H';k++)
+// 		printf("-----");
+// 	printf("\n");
 
-	for(int i = 0; i<8; i++) {
+// 	for(int i = 0; i<8; i++) {
 
-		//Display the column indices
-		if(i == 0) {
-			for(int k = (int)'A'; k<=(int)'H';k++)
-				printf(" %c  ", k);
-			printf("\n\n");
-		}
+// 		//Display the column indices
+// 		if(i == 0) {
+// 			for(int k = (int)'A'; k<=(int)'H';k++)
+// 				printf(" %c  ", k);
+// 			printf("\n\n");
+// 		}
 
-		for(int j = 0; j<9; j++) {
+// 		for(int j = 0; j<9; j++) {
 
-			//Display the row indices
-			if(j == 8) {
-				printf(" %d", count);
-				count++;
-			} else {
+// 			//Display the row indices
+// 			if(j == 8) {
+// 				printf(" %d", count);
+// 				count++;
+// 			} else {
 
-				//Display the elements in board
-				if(display_moves == 0) {
-					if(board[i][j])
-						printf("[%c] ", board[i][j]);
-					else
-						printf("[ ] ");
-				} else {
-					if(moves[i][j])
-						printf("[%d] ", moves[i][j]);
-					else
-						printf("[ ] ");
-				}
-			}
-		}
-		printf("\n\n");
-	}
+// 				//Display the elements in board
+// 				if(temp) {
+// 					if(board[i][j])
+// 						printf("[%c] ", board[i][j]);
+// 					else
+// 						printf("[ ] ");
+// 				} else {
+// 					if(moves[i][j])
+// 						printf("[%d] ", moves[i][j]);
+// 					else
+// 						printf("[ ] ");
+// 				}
+// 			}
+// 		}
+// 		printf("\n\n");
+// 	}
+// }
+
+char* unicode_symbols(char piece) {
+    switch(piece) {
+		case 'K':
+			return "\u2654";
+		case 'Q':
+			return "\u2655";
+		case 'B':
+			return "\u2657";
+		case 'H':
+			return "\u2658";
+		case 'R':
+			return "\u2656";
+		case 'P':
+			return "\u2659";
+		case 'k':
+			return "\u265A";
+		case 'q':
+			return "\u265B";
+		case 'b':
+			return "\u265D";
+		case 'h':
+			return "\u265E";
+		case 'r':
+			return "\u265C";
+		case 'p':
+			return "\u265F";
+    }
 }
+
+void display(int display_moves) {
+    int count = 1;
+
+    for(int k = (int)'A'; k<=(int)'H';k++)
+        printf("-----");
+    printf("\n");
+
+    for(int i = 0; i<8; i++) {
+
+        //Display the column indices
+        if(i == 0) {
+            for(int k = (int)'A'; k<=(int)'H';k++)
+                printf(" %c ", k);
+            printf("\n\n");
+        }
+
+        for(int j = 0; j<9; j++) {
+
+            //Display the row indices
+            if(j == 8) {
+                printf(" %d", count);
+                count++;
+            } else {
+
+                //Display the elements in board
+                if(display_moves == 1) {
+                    if(board[i][j]) {
+                    	//printf("i=%d\tj=%d\tmoves[i][j]=%d\n", i, j, moves[i][j]);
+                        if((i+j)%2==0) {
+                        	if(moves[i][j] == 1)
+                        		printf("\033[48;2;211;215;207;38;2;0;0;0m %s \033[0m", unicode_symbols(board[i][j]));
+                        	else
+                        		printf("\033[48;2;211;215;207;38;2;0;0;0m %s \033[0m", unicode_symbols(board[i][j]));
+                        } else {
+                        	if(moves[i][j] == 1)
+                        		printf("\033[48;2;139;69;19;38;2;0;0;0m %s \033[0m", unicode_symbols(board[i][j]));
+                        	else
+                            	printf("\033[48;2;139;69;19;38;2;0;0;0m %s \033[0m", unicode_symbols(board[i][j]));
+                        }
+                    } else {
+                        if(i) {
+                            if ((i+j)%2==0) {
+                            	if(moves[i][j] == 1)
+                        			printf("\033[48;2;211;215;207;38;2;0;255;0m · \033[0m");
+                        		else
+                        			printf("\033[48;2;211;215;207;38;2;0;0;0m   \033[0m");
+                        	} else {
+                        		if(moves[i][j] == 1)
+                        			printf("\033[48;2;139;69;19;38;2;0;255;0m · \033[0m");
+                        		else
+                            		printf("\033[48;2;139;69;19;38;2;0;0;0m   \033[0m");
+                        	}
+                        }
+                    }
+                } else {
+                    if(moves[i][j])
+                        printf("[%d] ", moves[i][j]);
+                    else
+                        printf("[ ]");
+                }
+            }
+        }
+        printf("\n");
+    }
+}
+
+
 
 //Set the board to its starting position
 void initialize() {
@@ -338,6 +428,7 @@ void initialize() {
 	}
 }
 
+//Get the possible moves for a respective piece
 void get_moves(char piece, int r, int c) {
 	switch(piece) {
 		case 'p':
@@ -367,15 +458,93 @@ void get_moves(char piece, int r, int c) {
 	}
 }
 
-//char message[] = "White's turn";
+//Reset the moves 2D array
+void reset_moves() {
+	for(int i = 0; i<8; i++) {
+		for(int j = 0; j<8; j++) {
+			moves[i][j] = 0;
+		}
+	}
+}
+
+//Check if the player king is being attacked
+bool check_for_attack(char piece) {
+	for(int i = 0; i<8; i++) {
+		for(int j = 0; j<8; j++) {
+			if((moves[i][j] == 2) && (board[i][j] == piece)) {
+				reset_moves();
+				return true;
+			}
+		}
+	}
+	reset_moves();
+	return false;
+}
+
+void check() {
+	checked = false;
+	for(int i = 0; i<8; i++) {
+		if(checked)
+			break;
+		for(int j = 0; j<8; j++) {
+			if((current_player == 'W') && (board[i][j] == 'K')) {
+				queen(i, j);
+				if(check_for_attack('q')) {
+					checked = true;
+					break;
+				}
+				rook(i, j);
+				if(check_for_attack('r')) {
+					checked = true;
+					break;
+				}
+				bishop(i, j);
+				if(check_for_attack('b')) {
+					checked = true;
+					break;
+				}
+				horse(i, j);
+				if(check_for_attack('h')) {
+					checked = true;
+					break;
+				}
+			} else if((current_player == 'B') && (board[i][j] == 'k')) {
+				queen(i, j);
+				if(check_for_attack('Q')) {
+					checked = true;
+					break;
+				}
+				rook(i, j);
+				if(check_for_attack('R')) {
+					checked = true;
+					break;
+				}
+				bishop(i, j);
+				if(check_for_attack('B')) {
+					checked = true;
+					break;
+				}
+				horse(i, j);
+				if(check_for_attack('H')) {
+					checked = true;
+					break;
+				}
+			}
+		}
+	}
+}
+
 int main() {
 
     while(true) {
+    	
+    	//exit(0);
 
         system("@cls||clear");
-        printf("----------------\n");
-        printf("   Chess in C\n");
-        printf("----------------\n\n");
+        // printf("----------------\n");
+        // printf("   Chess in C\n");
+        // printf("----------------\n\n");
+        intro();
         printf("1.Start\n");
         printf("2.Exit\n");
         printf("Input: ");
@@ -398,39 +567,49 @@ int main() {
     initialize();
 
     while(true){
-
+    	not_cleared_check:
         system("@cls||clear");
-        printf("%s's turn\n", current_player);
-        display(0);
+        if(current_player == 'W')
+        	printf("White's turn\n");
+        else
+        	printf("Black's turn\n");
+        display(1);
 
      	int pos = input(0);
      	int column = pos/10, row = pos%10;
      	get_moves(board[row][column], row, column);
+
      	moves[row][column] = 3;
         //system("@cls||clear");
         display(1);
+        display(0);
         printf("\n");
 
         retry:
         pos = input(1);
         int new_column = pos/10, new_row = pos%10;
+        char temp_piece  = board[new_row][new_column];
 
         if(moves[new_row][new_column] == 1 || moves[new_row][new_column] == 2){
             board[new_row][new_column] = board[row][column];
             board[row][column] = '\0';
+            check();
+            printf("CHECKED = %d", checked);
+            if(checked == true) {
+            	printf("\n\nCHECKED!!!!!\n\n");
+            	board[row][column] = board[new_row][new_column];
+            	board[new_row][new_column] = temp_piece;
+            	goto not_cleared_check;
+            }
         } else {
         	goto retry;
         }
 
-        for(int i = 0; i<8;i++) {
-        	for(int j = 0; j<8;j++) {
-        		moves[i][j] = 0;
-        	}
-        }
-        if(current_player[0] == 'W')
-        	strcpy(current_player, "Black");
+        reset_moves();
+        if(current_player == 'W')
+        	current_player = 'B';
         else
-        	strcpy(current_player, "White");
+        	current_player = 'W';
     }
     return 0;
 }
